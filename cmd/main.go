@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	dalfox "github.com/hahwul/dalfox/v2/lib"
+	"go.uber.org/zap"
+
+	"test/internal/model"
+	"test/internal/scanning"
 )
 
 var (
@@ -16,12 +19,14 @@ var (
 func main() {
 	flag.Parse()
 
-	opt := dalfox.Options{
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
+	opt := model.Options{
 		CustomPayloadFile: *payload,
 		OnlyCustomPayload: true,
-		FindingDOM:        true,
 	}
-	result, err := dalfox.NewScan(dalfox.Target{
+	result, err := scanning.NewScan(logger, model.Target{
 		URL:     *url,
 		Method:  "GET",
 		Options: opt,
@@ -32,5 +37,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(result)
+	fmt.Printf("%+v\n", result)
 }

