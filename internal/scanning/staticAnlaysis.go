@@ -3,13 +3,14 @@ package scanning
 import (
 	"test/internal/model"
 	"test/internal/optimization"
+	"time"
 )
 
 // StaticAnalysis is found information on original req/res
 func StaticAnalysis(target string, options model.Options, rl *rateLimiter) map[string]string {
 	policy := make(map[string]string)
 	req := optimization.GenerateNewRequest(target, "", options)
-	_, resp, _, _, err := SendReq(req, "", options)
+	_, resp, _, _, err := SendReq(req, "", time.Duration(options.Timeout)*time.Second)
 	if err != nil {
 		return policy
 	}

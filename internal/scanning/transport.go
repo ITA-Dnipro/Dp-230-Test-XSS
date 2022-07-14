@@ -4,14 +4,11 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
-	"net/url"
 	"time"
-
-	"test/internal/model"
 )
 
 // getTransport is setting timetout and proxy on tranport
-func getTransport(options model.Options) *http.Transport {
+func getTransport(timeout time.Duration) *http.Transport {
 	// set timeout
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -20,18 +17,9 @@ func getTransport(options model.Options) *http.Transport {
 		},
 		DisableKeepAlives: true,
 		DialContext: (&net.Dialer{
-			Timeout:   time.Duration(options.Timeout) * time.Second,
+			Timeout:   timeout,
 			DualStack: true,
 		}).DialContext,
-	}
-	// if use proxy mode , set proxy
-	if options.ProxyAddress != "" {
-		proxyAddress, err := url.Parse(options.ProxyAddress)
-		_ = proxyAddress
-		//validate proxy
-		if err != nil {
-		}
-		transport.Proxy = http.ProxyURL(proxyAddress)
 	}
 	return transport
 }

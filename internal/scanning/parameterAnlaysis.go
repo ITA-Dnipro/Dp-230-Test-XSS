@@ -40,25 +40,16 @@ func ParameterAnalysis(log *zap.Logger, target string, options model.Options, rl
 	if options.Mining {
 		tempURL, _ := optimization.MakeRequestQuery(target, "pleasedonthaveanamelikethis_plz_plz", "DalFox", "PA", "toAppend", "NaN", options)
 		rl.Block(tempURL.Host)
-		resBody, _, _, vrs, _ := SendReq(tempURL, "DalFox", options)
+		resBody, _, _, vrs, _ := SendReq(tempURL, "DalFox", time.Duration(options.Timeout)*time.Second)
 		if vrs {
 			_, lineSum := verification.VerifyReflectionWithLine(resBody, "DalFox")
 			miningCheckerLine = lineSum
 		}
 
-		// Add UniqParam to Mining output
-		if len(options.UniqParam) > 0 {
-			for _, selectedParam := range options.UniqParam {
-				p = setP(p, selectedParam, options)
-			}
-		}
-
 		// Param mining with Gf-Patterins
-		if options.MiningWordlist == "" {
-			for _, gfParam := range GetGfXSS() {
-				if gfParam != "" {
-					p = setP(p, gfParam, options)
-				}
+		for _, gfParam := range GetGfXSS() {
+			if gfParam != "" {
+				p = setP(p, gfParam, options)
 			}
 		}
 
@@ -67,19 +58,19 @@ func ParameterAnalysis(log *zap.Logger, target string, options model.Options, rl
 		treq := optimization.GenerateNewRequest(target, "", options)
 		//treq, terr := http.NewRequest("GET", target, nil)
 		if treq != nil {
-			transport := getTransport(options)
+			transport := getTransport(10 * time.Second)
 			t := options.Timeout
 			client := &http.Client{
 				Timeout:   time.Duration(t) * time.Second,
 				Transport: transport,
 			}
 
-			if !options.FollowRedirect {
-				client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-					//return errors.New("Follow redirect") // or maybe the error from the request
-					return nil
-				}
-			}
+			// if !options.FollowRedirect {
+			// 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			// 		//return errors.New("Follow redirect") // or maybe the error from the request
+			// 		return nil
+			// 	}
+			// }
 
 			tres, err := client.Do(treq)
 			if err == nil {
@@ -160,85 +151,83 @@ func ParameterAnalysis(log *zap.Logger, target string, options model.Options, rl
 		wgg.Add(1)
 		go func() {
 			for k := range paramsQue {
-				if optimization.CheckInspectionParam(options, k) {
-					log.Debug("Mining URL scan to ", zap.String("url", k))
-					tempURL, _ := optimization.MakeRequestQuery(target, k, "DalFox", "PA", "toAppend", "NaN", options)
-					var code string
-					rl.Block(tempURL.Host)
-					resbody, resp, _, vrs, err := SendReq(tempURL, "DalFox", options)
-					if err == nil {
-						wafCheck, wafN := checkWAF(resp.Header, resbody)
-						if wafCheck {
-							mutex.Lock()
-							if !waf {
-								waf = true
-								wafName = wafN
-								if options.WAFEvasion {
-									options.Concurrence = 1
-									options.Delay = 3
-									log.Info("Set worker=1, delay=3s for WAF-Evasion")
-								}
-							}
-							mutex.Unlock()
-						}
-					}
-					_, lineSum := verification.VerifyReflectionWithLine(resbody, "DalFox")
-					if miningCheckerLine == lineSum {
-						//vrs = false
-						//(#354) It can cause a lot of misconceptions. removed it.
-					}
-					if vrs {
-						code = CodeView(resbody, "DalFox")
-						code = code[:len(code)-5]
-						pointer := optimization.Abstraction(resbody, "DalFox")
-						smap := "Injected: "
-						tempSmap := make(map[string]int)
-
-						for _, v := range pointer {
-							if tempSmap[v] == 0 {
-								tempSmap[v] = 1
-							} else {
-								tempSmap[v] = tempSmap[v] + 1
-							}
-						}
-						for k, v := range tempSmap {
-							smap = smap + "/" + k + "(" + strconv.Itoa(v) + ")"
-						}
+				log.Debug("Mining URL scan to ", zap.String("url", k))
+				tempURL, _ := optimization.MakeRequestQuery(target, k, "DalFox", "PA", "toAppend", "NaN", options)
+				var code string
+				rl.Block(tempURL.Host)
+				resbody, resp, _, vrs, err := SendReq(tempURL, "DalFox", time.Duration(options.Timeout)*time.Second)
+				if err == nil {
+					wafCheck, wafN := checkWAF(resp.Header, resbody)
+					if wafCheck {
 						mutex.Lock()
-						miningDictCount = miningDictCount + 1
-						params[k] = append(params[k], "PTYPE: URL")
-						params[k] = append(params[k], smap)
-						mutex.Unlock()
-						var wg sync.WaitGroup
-						chars := GetSpecialChar()
-						for _, c := range chars {
-							wg.Add(1)
-							char := c
-							go func() {
-								defer wg.Done()
-								encoders := []string{
-									"NaN",
-									"urlEncode",
-									"urlDoubleEncode",
-									"htmlEncode",
-								}
-
-								for _, encoder := range encoders {
-									turl, _ := optimization.MakeRequestQuery(target, k, "dalfox"+char, "PA-URL", "toAppend", encoder, options)
-									rl.Block(tempURL.Host)
-									_, _, _, vrs, _ := SendReq(turl, "dalfox"+char, options)
-									if vrs {
-										mutex.Lock()
-										params[k] = append(params[k], char)
-										mutex.Unlock()
-									}
-								}
-							}()
+						if !waf {
+							waf = true
+							wafName = wafN
+							// if options.WAFEvasion {
+							// 	options.Concurrence = 1
+							// 	options.Delay = 3
+							// 	log.Info("Set worker=1, delay=3s for WAF-Evasion")
+							// }
 						}
-						wg.Wait()
-						params[k] = uniqueStringSlice(params[k])
-						params[k] = append(params[k], code)
+						mutex.Unlock()
 					}
+				}
+				_, lineSum := verification.VerifyReflectionWithLine(resbody, "DalFox")
+				if miningCheckerLine == lineSum {
+					//vrs = false
+					//(#354) It can cause a lot of misconceptions. removed it.
+				}
+				if vrs {
+					code = CodeView(resbody, "DalFox")
+					code = code[:len(code)-5]
+					pointer := optimization.Abstraction(resbody, "DalFox")
+					smap := "Injected: "
+					tempSmap := make(map[string]int)
+
+					for _, v := range pointer {
+						if tempSmap[v] == 0 {
+							tempSmap[v] = 1
+						} else {
+							tempSmap[v] = tempSmap[v] + 1
+						}
+					}
+					for k, v := range tempSmap {
+						smap = smap + "/" + k + "(" + strconv.Itoa(v) + ")"
+					}
+					mutex.Lock()
+					miningDictCount = miningDictCount + 1
+					params[k] = append(params[k], "PTYPE: URL")
+					params[k] = append(params[k], smap)
+					mutex.Unlock()
+					var wg sync.WaitGroup
+					chars := GetSpecialChar()
+					for _, c := range chars {
+						wg.Add(1)
+						char := c
+						go func() {
+							defer wg.Done()
+							encoders := []string{
+								"NaN",
+								"urlEncode",
+								"urlDoubleEncode",
+								"htmlEncode",
+							}
+
+							for _, encoder := range encoders {
+								turl, _ := optimization.MakeRequestQuery(target, k, "dalfox"+char, "PA-URL", "toAppend", encoder, options)
+								rl.Block(tempURL.Host)
+								_, _, _, vrs, _ := SendReq(turl, "dalfox"+char, time.Duration(options.Timeout)*time.Second)
+								if vrs {
+									mutex.Lock()
+									params[k] = append(params[k], char)
+									mutex.Unlock()
+								}
+							}
+						}()
+					}
+					wg.Wait()
+					params[k] = uniqueStringSlice(params[k])
+					params[k] = append(params[k], code)
 				}
 			}
 			wgg.Done()
@@ -257,7 +246,6 @@ func ParameterAnalysis(log *zap.Logger, target string, options model.Options, rl
 	}
 	if waf {
 		log.Info("Found WAF: ", zap.String("wafName", wafName))
-		options.WAF = true
 	}
 	return params
 }

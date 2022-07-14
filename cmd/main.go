@@ -23,8 +23,8 @@ func main() {
 	defer logger.Sync()
 
 	opt := model.Options{
-		CustomPayloadFile: *payload,
-		OnlyCustomPayload: true,
+		// CustomPayloadFile: *payload,
+		// OnlyCustomPayload: true,
 	}
 	result, err := scanning.NewScan(logger, model.Target{
 		URL:     *url,

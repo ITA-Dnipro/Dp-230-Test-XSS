@@ -16,7 +16,7 @@ func GenerateNewRequest(url, body string, options model.Options) *http.Request {
 	req, _ := http.NewRequest("GET", url, nil)
 	// Add the Accept header like browsers do.
 	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9")
-
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:75.0) Gecko/20100101 Firefox/75.0")
 	if options.Data != "" {
 		d := []byte(body)
 		req, _ = http.NewRequest("POST", url, bytes.NewBuffer(d))
@@ -25,19 +25,13 @@ func GenerateNewRequest(url, body string, options model.Options) *http.Request {
 
 	if len(options.Header) > 0 {
 		for _, v := range options.Header {
-			h := strings.Split(v, ": ")
-			if len(h) > 1 {
+			if h := strings.Split(v, ": "); len(h) > 1 {
 				req.Header.Add(h[0], h[1])
 			}
 		}
 	}
 	if options.Cookie != "" {
 		req.Header.Add("Cookie", options.Cookie)
-	}
-	if options.UserAgent != "" {
-		req.Header.Add("User-Agent", options.UserAgent)
-	} else {
-		req.Header.Add("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:75.0) Gecko/20100101 Firefox/75.0")
 	}
 	if options.Method != "" {
 		req.Method = options.Method
@@ -48,12 +42,13 @@ func GenerateNewRequest(url, body string, options model.Options) *http.Request {
 // MakeRequestQuery is generate http query with custom parameters
 func MakeRequestQuery(target, param, payload, ptype string, pAction string, pEncode string, options model.Options) (*http.Request, map[string]string) {
 
-	tempMap := make(map[string]string)
-	tempMap["type"] = ptype
-	tempMap["action"] = pAction
-	tempMap["encode"] = pEncode
-	tempMap["payload"] = payload
-	tempMap["param"] = param
+	tempMap := map[string]string{
+		"type":    ptype,
+		"action":  pAction,
+		"encode":  pEncode,
+		"payload": payload,
+		"param":   param,
+	}
 
 	u, _ := url.Parse(target)
 
@@ -123,19 +118,12 @@ func MakeRequestQuery(target, param, payload, ptype string, pAction string, pEnc
 	}
 }
 
-// TODO: find out
 // UrlEncode is custom url encoder for double url encoding
+// https://github.com/hahwul/dalfox/blob/main/pkg/optimization/optimization.go#L202
 func UrlEncode(s string) (result string) {
 	for _, c := range s {
 		if c <= 0x7f { // single byte
 			result += fmt.Sprintf("%%%X", c)
-		} else if c > 0x1fffff { // quaternary byte
-			result += fmt.Sprintf("%%%X%%%X%%%X%%%X",
-				0xf0+((c&0x1c0000)>>18),
-				0x80+((c&0x3f000)>>12),
-				0x80+((c&0xfc0)>>6),
-				0x80+(c&0x3f),
-			)
 		} else if c > 0x7ff { // triple byte
 			result += fmt.Sprintf("%%%X%%%X%%%X",
 				0xe0+((c&0xf000)>>12),

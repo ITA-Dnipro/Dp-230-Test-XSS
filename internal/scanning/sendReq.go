@@ -8,17 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"test/internal/model"
-
 	"github.com/hahwul/dalfox/v2/pkg/verification"
 )
 
 // SendReq is sending http request (handled GET/POST)
-func SendReq(req *http.Request, payload string, options model.Options) (string, *http.Response, bool, bool, error) {
-	netTransport := getTransport(options)
+func SendReq(req *http.Request, payload string, timeout time.Duration) (string, *http.Response, bool, bool, error) {
+	netTransport := getTransport(10 * time.Second)
 
 	client := &http.Client{
-		Timeout:   time.Duration(options.Timeout) * time.Second,
+		Timeout:   timeout,
 		Transport: netTransport,
 	}
 
