@@ -196,10 +196,10 @@ func getParamAnalysisQueries(target string, params map[string][]string, options 
 	return queries
 }
 
-// Initialize is init for model.Options
-func Initialize(target model.Target, options model.Options) model.Options {
+// NewScan is ingle scan in lib
+func NewScan(log *zap.Logger, target model.Target) (model.Result, error) {
 	stime := time.Now()
-	newOptions := model.Options{
+	options := model.Options{
 		Header:           []string{},
 		Cookie:           "",
 		CustomAlertValue: "1",
@@ -218,64 +218,7 @@ func Initialize(target model.Target, options model.Options) model.Options {
 		UseHeadless:      true,
 		UseDeepDXSS:      false,
 	}
-	if target.Method != "" {
-		newOptions.Method = target.Method
-	}
-	if options.Cookie != "" {
-		newOptions.Cookie = options.Cookie
-	}
-	if len(options.Header) > 0 {
-		for _, v := range options.Header {
-			newOptions.Header = append(newOptions.Header, v)
-		}
-	}
-	if options.CustomAlertValue != "" {
-		newOptions.CustomAlertValue = options.CustomAlertValue
-	}
-	if options.CustomAlertType != "" {
-		newOptions.CustomAlertType = options.CustomAlertType
-	}
-	if options.Data != "" {
-		newOptions.Data = options.Data
-	}
-	if options.UserAgent != "" {
-		newOptions.UserAgent = options.UserAgent
-	}
-	if options.ProxyAddress != "" {
-		newOptions.ProxyAddress = options.ProxyAddress
-	}
-
-	if options.Timeout != 0 {
-		newOptions.Timeout = options.Timeout
-	}
-	if options.Concurrence != 0 {
-		newOptions.Concurrence = options.Concurrence
-	}
-	if options.Delay != 0 {
-		newOptions.Delay = options.Delay
-	}
-
-	if options.Mining != false {
-		newOptions.Mining = options.Mining
-	}
-	if options.FindingDOM != false {
-		newOptions.FindingDOM = options.FindingDOM
-	}
-
-	if options.UseHeadless == false {
-		newOptions.UseHeadless = false
-	}
-	if options.UseDeepDXSS == true {
-		newOptions.UseDeepDXSS = true
-	}
-
-	return newOptions
-}
-
-// NewScan is dalfox single scan in lib
-func NewScan(log *zap.Logger, target model.Target) (model.Result, error) {
-	newOptions := Initialize(target, target.Options)
-	modelResult, err := Scan(log, target.URL, newOptions, "Single")
+	modelResult, err := Scan(log, target.URL, options, "Single")
 	result := model.Result{
 		Logs:      modelResult.Logs,
 		PoCs:      modelResult.PoCs,

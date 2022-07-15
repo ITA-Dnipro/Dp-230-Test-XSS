@@ -1,10 +1,7 @@
 package scanning
 
 import (
-	"compress/gzip"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -13,13 +10,12 @@ import (
 
 	"test/internal/model"
 	"test/internal/optimization"
-	"test/internal/verification"
 
 	"github.com/PuerkitoBio/goquery"
 	"go.uber.org/zap"
 )
 
-func setP(p url.Values, name string, options model.Options) url.Values {
+func setP(p url.Values, name string) url.Values {
 	if p.Get(name) == "" {
 		p.Set(name, "")
 	}
@@ -28,7 +24,6 @@ func setP(p url.Values, name string, options model.Options) url.Values {
 
 // ParameterAnalysis is check reflected and mining params
 func ParameterAnalysis(log *zap.Logger, target string, options model.Options, rl *rateLimiter) map[string][]string {
-	miningCheckerLine := 0
 	u, err := url.Parse(target)
 	params := make(map[string][]string)
 	if err != nil {
@@ -38,107 +33,20 @@ func ParameterAnalysis(log *zap.Logger, target string, options model.Options, rl
 	p, _ := url.ParseQuery(u.RawQuery)
 
 	if options.Mining {
-		tempURL, _ := optimization.MakeRequestQuery(target, "pleasedonthaveanamelikethis_plz_plz", "DalFox", "PA", "toAppend", "NaN", options)
-		rl.Block(tempURL.Host)
-		resBody, _, _, vrs, _ := SendReq(tempURL, "DalFox", time.Duration(options.Timeout)*time.Second)
-		if vrs {
-			_, lineSum := verification.VerifyReflectionWithLine(resBody, "DalFox")
-			miningCheckerLine = lineSum
-		}
-
 		// Param mining with Gf-Patterins
 		for _, gfParam := range GetGfXSS() {
 			if gfParam != "" {
-				p = setP(p, gfParam, options)
+				p = setP(p, gfParam)
 			}
 		}
-
 	}
 	if options.FindingDOM {
-		treq := optimization.GenerateNewRequest(target, "", options)
-		//treq, terr := http.NewRequest("GET", target, nil)
-		if treq != nil {
-			transport := getTransport(10 * time.Second)
-			t := options.Timeout
-			client := &http.Client{
-				Timeout:   time.Duration(t) * time.Second,
-				Transport: transport,
-			}
-
-			// if !options.FollowRedirect {
-			// 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			// 		//return errors.New("Follow redirect") // or maybe the error from the request
-			// 		return nil
-			// 	}
-			// }
-
-			tres, err := client.Do(treq)
-			if err == nil {
-				defer tres.Body.Close()
-				var reader io.ReadCloser
-				switch tres.Header.Get("Content-Encoding") {
-				case "gzip":
-					reader, err = gzip.NewReader(tres.Body)
-					if err != nil {
-						reader = tres.Body
-					}
-					defer reader.Close()
-				default:
-					reader = tres.Body
-				}
-				bodyString, err := ioutil.ReadAll(reader)
-				if err == nil {
-					body := ioutil.NopCloser(strings.NewReader(string(bodyString)))
-					defer body.Close()
-					doc, err := goquery.NewDocumentFromReader(body)
-					if err == nil {
-						count := 0
-						doc.Find("input").Each(func(i int, s *goquery.Selection) {
-							name, _ := s.Attr("name")
-							p = setP(p, name, options)
-							count = count + 1
-						})
-						doc.Find("textarea").Each(func(i int, s *goquery.Selection) {
-							name, _ := s.Attr("name")
-							p = setP(p, name, options)
-							count = count + 1
-						})
-						doc.Find("select").Each(func(i int, s *goquery.Selection) {
-							name, _ := s.Attr("name")
-							p = setP(p, name, options)
-							count = count + 1
-						})
-						doc.Find("form").Each(func(i int, s *goquery.Selection) {
-							action, _ := s.Attr("action")
-							if strings.HasPrefix(action, "/") || strings.HasPrefix(action, "?") { // assuming this is a relative URL
-								url, _ := url.Parse(action)
-								query := url.Query()
-								for aParam := range query {
-									p = setP(p, aParam, options)
-									count = count + 1
-								}
-
-							}
-						})
-						doc.Find("a").Each(func(i int, s *goquery.Selection) {
-							href, _ := s.Attr("href")
-							if strings.HasPrefix(href, "/") || strings.HasPrefix(href, "?") { // assuming this is a relative URL
-								url, _ := url.Parse(href)
-								query := url.Query()
-								for aParam := range query {
-									p = setP(p, aParam, options)
-									count = count + 1
-								}
-
-							}
-						})
-						log.Info("Found ", zap.Int("testing point in DOM base parameter mining: ", count))
-					}
-				}
+		for _, domParam := range getDOMParams(target, options) {
+			if domParam != "" {
+				p = setP(p, domParam)
 			}
 		}
 	}
-
 	// Testing URL Params
 	var wgg sync.WaitGroup
 	concurrency := options.Concurrence
@@ -171,11 +79,6 @@ func ParameterAnalysis(log *zap.Logger, target string, options model.Options, rl
 						}
 						mutex.Unlock()
 					}
-				}
-				_, lineSum := verification.VerifyReflectionWithLine(resbody, "DalFox")
-				if miningCheckerLine == lineSum {
-					//vrs = false
-					//(#354) It can cause a lot of misconceptions. removed it.
 				}
 				if vrs {
 					code = CodeView(resbody, "DalFox")
@@ -259,6 +162,60 @@ func GetPType(av string) string {
 		return "-FORM"
 	}
 	return ""
+}
+
+func getDOMParams(target string, options model.Options) []string {
+	p := make([]string, 0)
+
+	treq := optimization.GenerateNewRequest(target, "", options)
+	bodyStr, _, _, _, err := SendReq(treq, "", time.Duration(options.Timeout)*time.Second)
+	if err != nil {
+		return p
+	}
+
+	body := ioutil.NopCloser(strings.NewReader(string(bodyStr)))
+	defer body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(body)
+	if err == nil {
+		return p
+	}
+
+	doc.Find("input").Each(func(i int, s *goquery.Selection) {
+		name, _ := s.Attr("name")
+		p = append(p, name)
+	})
+	doc.Find("textarea").Each(func(i int, s *goquery.Selection) {
+		name, _ := s.Attr("name")
+		p = append(p, name)
+	})
+	doc.Find("select").Each(func(i int, s *goquery.Selection) {
+		name, _ := s.Attr("name")
+		p = append(p, name)
+	})
+	doc.Find("form").Each(func(i int, s *goquery.Selection) {
+		action, _ := s.Attr("action")
+		if strings.HasPrefix(action, "/") || strings.HasPrefix(action, "?") { // assuming this is a relative URL
+			url, _ := url.Parse(action)
+			query := url.Query()
+			for aParam := range query {
+				p = append(p, aParam)
+			}
+
+		}
+	})
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		href, _ := s.Attr("href")
+		if strings.HasPrefix(href, "/") || strings.HasPrefix(href, "?") { // assuming this is a relative URL
+			url, _ := url.Parse(href)
+			query := url.Query()
+			for aParam := range query {
+				p = append(p, aParam)
+			}
+
+		}
+	})
+	return p
 }
 
 // UniqueStringSlice is remove duplicated data in String Slice(array)
