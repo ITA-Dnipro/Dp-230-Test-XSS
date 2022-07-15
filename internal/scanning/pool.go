@@ -2,7 +2,6 @@ package scanning
 
 import (
 	"context"
-	"net/http"
 	"sync"
 	"test/internal/model"
 )
@@ -56,12 +55,9 @@ func (wp WorkerPool) Results() <-chan *model.PoC {
 	return wp.results
 }
 
-func (wp WorkerPool) GenerateFrom(query map[*http.Request]map[string]string) {
-	for k, v := range query {
-		wp.jobs <- Queries{
-			request:  k,
-			metadata: v,
-		}
+func (wp WorkerPool) GenerateFrom(queries []Queries) {
+	for i := range queries {
+		wp.jobs <- queries[i]
 	}
 	close(wp.jobs)
 }
