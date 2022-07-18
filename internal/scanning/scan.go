@@ -16,29 +16,65 @@ import (
 
 //TODO: refactor
 // Scan is main scanning function
-func Scan(log *zap.Logger, target string, options model.Options, sid string) (model.Result, error) {
-	var scanResult model.Result
 
-	log.Info("SYSTEM", zap.String("url", target))
+type Scanner struct {
+	log *zap.Logger
+}
+
+// NewScan is ingle scan in lib
+func NewScanner(log *zap.Logger) *Scanner {
+	return &Scanner{log: log}
+}
+
+func (s Scanner) Scan(target string) (model.Result, error) {
+	options := model.Options{
+		Header:           []string{},
+		Cookie:           "",
+		CustomAlertValue: "1",
+		CustomAlertType:  "none",
+		Data:             "",
+		UserAgent:        "",
+		ProxyAddress:     "",
+		Timeout:          10,
+		Concurrence:      100,
+		Delay:            0,
+		Mining:           true,
+		FindingDOM:       true,
+		Method:           "GET",
+		CookieFromRaw:    "",
+		UseHeadless:      true,
+		UseDeepDXSS:      false,
+	}
+	return s.scan(target, options)
+}
+
+func (s Scanner) scan(target string, options model.Options) (model.Result, error) {
+
+	scanResult := model.Result{
+		URL:       target,
+		StartTime: time.Now(),
+	}
+
+	s.log.Info("SYSTEM", zap.String("url", target))
 
 	if _, err := url.Parse(target); err != nil {
-		log.Error("SYSTEM Not running invalid target", zap.String("url", target), zap.Error(err))
+		s.log.Error("SYSTEM Not running invalid target", zap.String("url", target), zap.Error(err))
 		return scanResult, err
 	}
 
-	log.Info("SYSTEM Waiting for analysis")
+	s.log.Info("SYSTEM Waiting for analysis")
 
 	policy := StaticAnalysis(target, options)
 
 	if !isAllowType(policy["Content-Type"]) {
-		log.Error("SYSTEM Not running not allow target policy", zap.String("url", target), zap.String("policy", policy["Content-Type"]))
+		s.log.Error("SYSTEM Not running not allow target policy", zap.String("url", target), zap.String("policy", policy["Content-Type"]))
 		return scanResult, errors.New("not allow policy")
 	}
 
-	params := ParameterAnalysis(log, target, options)
+	params := ParameterAnalysis(s.log, target, options)
 
 	// XSS Scanning
-	log.Info("SYSTEM  Generate XSS payload and optimization.Optimization..")
+	s.log.Info("SYSTEM  Generate XSS payload and optimization.Optimization..")
 
 	// query is XSS payloads
 	query := make([]Queries, 0)
@@ -48,7 +84,7 @@ func Scan(log *zap.Logger, target string, options model.Options, sid string) (mo
 	up := getParamAnalysisQueries(target, params, options)
 	query = append(query, up...)
 
-	log.Info("SYSTEM, Start XSS Scanning.. ", zap.Int("workers count", options.Concurrence), zap.Int("queries count", len(query)))
+	s.log.Info("SYSTEM, Start XSS Scanning.. ", zap.Int("workers count", options.Concurrence), zap.Int("queries count", len(query)))
 
 	wp := NewWorkerPool(options.Concurrence)
 	go wp.GenerateFrom(query)
@@ -192,37 +228,4 @@ func getParamAnalysisQueries(target string, params map[string][]string, options 
 		}
 	}
 	return queries
-}
-
-// NewScan is ingle scan in lib
-func NewScan(log *zap.Logger, target model.Target) (model.Result, error) {
-	stime := time.Now()
-	options := model.Options{
-		Header:           []string{},
-		Cookie:           "",
-		CustomAlertValue: "1",
-		CustomAlertType:  "none",
-		Data:             "",
-		UserAgent:        "",
-		ProxyAddress:     "",
-		Timeout:          10,
-		Concurrence:      100,
-		Delay:            0,
-		Mining:           true,
-		FindingDOM:       true,
-		Method:           "GET",
-		CookieFromRaw:    "",
-		StartTime:        stime,
-		UseHeadless:      true,
-		UseDeepDXSS:      false,
-	}
-	modelResult, err := Scan(log, target.URL, options, "Single")
-	result := model.Result{
-		Logs:      modelResult.Logs,
-		PoCs:      modelResult.PoCs,
-		Duration:  modelResult.Duration,
-		StartTime: modelResult.StartTime,
-		EndTime:   modelResult.EndTime,
-	}
-	return result, err
 }

@@ -35,3 +35,10 @@ lint:
 	@echo lint
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	@$(GOBIN)/golangci-lint run
+
+# ==============================================================================
+# Docker
+
+local:
+	echo "Starting local docker compose"
+	docker-compose -f docker-compose.local.yml up --build

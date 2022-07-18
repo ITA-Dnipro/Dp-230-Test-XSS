@@ -2,37 +2,30 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
+	"log"
 
-	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
-	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/scanning"
 	"go.uber.org/zap"
-)
 
-var (
-	url = flag.String("u", "https://xss-game.appspot.com/level1/frame", "URL")
+	"github.com/kelseyhightower/envconfig"
+
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/config"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/kafka"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/scanning"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/server"
 )
 
 func main() {
 	flag.Parse()
 
+	var cfg config.Config
+	if err := envconfig.Process("xss", &cfg); err != nil {
+		log.Fatal(err.Error())
+	}
+
 	logger, _ := zap.NewProduction()
 
-	opt := model.Options{
-		// CustomPayloadFile: *payload,
-		// OnlyCustomPayload: true,
-	}
-	result, err := scanning.NewScan(logger, model.Target{
-		URL:     *url,
-		Method:  "GET",
-		Options: opt,
-	})
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	fmt.Printf("%+v\n", len(result.PoCs))
+	scanner := scanning.NewScanner(logger)
+	consumer := kafka.New(cfg)
+	srv := server.NewServer(logger, consumer, scanner)
+	srv.Start()
 }
