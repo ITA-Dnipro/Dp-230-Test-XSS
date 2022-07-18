@@ -3,7 +3,8 @@ package scanning
 import (
 	"context"
 	"sync"
-	"test/internal/model"
+
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
 )
 
 func worker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan Queries, results chan<- *model.PoC) {

@@ -4,10 +4,11 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"test/internal/model"
-	"test/internal/optimization"
-	"test/internal/verification"
 	"time"
+
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/optimization"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/verification"
 )
 
 // Queries is struct of queries
@@ -124,17 +125,4 @@ func (q *Queries) check(ctx context.Context) *model.PoC {
 
 	}
 	return nil
-}
-
-func checkVStatus(vStatus map[string]bool) bool {
-	for k, v := range vStatus {
-		if k != "pleasedonthaveanamelikethis_plz_plz" {
-			if !v {
-				return false
-			}
-		} else {
-			return false
-		}
-	}
-	return true
 }

@@ -1,13 +1,14 @@
 package scanning
 
 import (
-	"test/internal/model"
-	"test/internal/optimization"
 	"time"
+
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/optimization"
 )
 
 // StaticAnalysis is found information on original req/res
-func StaticAnalysis(target string, options model.Options, rl *rateLimiter) map[string]string {
+func StaticAnalysis(target string, options model.Options) map[string]string {
 	policy := make(map[string]string)
 	req := optimization.GenerateNewRequest(target, "", options)
 	_, resp, _, _, err := SendReq(req, "", time.Duration(options.Timeout)*time.Second)

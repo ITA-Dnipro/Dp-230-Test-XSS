@@ -2,8 +2,6 @@ package scanning
 
 import (
 	"strings"
-
-	"github.com/hahwul/dalfox/v2/pkg/model"
 )
 
 func indexOf(element string, data []string) int {
@@ -13,15 +11,6 @@ func indexOf(element string, data []string) int {
 		}
 	}
 	return -1 //not found.
-}
-
-func duplicatedResult(result []model.PoC, rst model.PoC) bool {
-	for _, v := range result {
-		if v.Type == rst.Type {
-			return true
-		}
-	}
-	return false
 }
 
 func containsFromArray(slice []string, item string) bool {

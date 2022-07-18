@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/template"
 
-	"test/internal/model"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
 )
 
 // GenerateNewRequest is make http.Cilent
@@ -68,18 +68,10 @@ func MakeRequestQuery(target, param, payload, ptype string, pAction string, pEnc
 	switch tempMap["encode"] {
 	case "urlEncode":
 		payload = UrlEncode(payload)
-		break
-
 	case "urlDoubleEncode":
 		payload = (UrlEncode(payload))
-		break
-
 	case "htmlEncode":
 		payload = template.HTMLEscapeString(payload)
-		break
-
-	default:
-		break
 	}
 
 	// We first check if the parameter exist and then "append or replace" the value
@@ -95,8 +87,7 @@ func MakeRequestQuery(target, param, payload, ptype string, pAction string, pEnc
 			paramListBody.Add(tempMap["param"], payload)
 		}
 
-		var rst *http.Request
-		rst = GenerateNewRequest(u.String(), paramListBody.Encode(), options)
+		rst := GenerateNewRequest(u.String(), paramListBody.Encode(), options)
 		return rst, tempMap
 	} else {
 		// PA-URL

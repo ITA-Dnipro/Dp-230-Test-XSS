@@ -3,7 +3,7 @@ package optimization
 import (
 	"strings"
 
-	"test/internal/model"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
 )
 
 // SetPayloadValue is change alert/prompt/conrifm value and type

@@ -25,10 +25,7 @@ func VerifyReflectionWithLine(body, payload string) (bool, int) {
 
 // VerifyReflection is check reflected param for xss and mining
 func VerifyReflection(body, payload string) bool {
-	if strings.Contains(body, payload) {
-		return true
-	}
-	return false
+	return strings.Contains(body, payload)
 }
 
 // VerifyDOM is check success inject on code

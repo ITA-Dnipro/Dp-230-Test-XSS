@@ -10,8 +10,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"test/internal/model"
-	"test/internal/optimization"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/optimization"
 )
 
 //TODO: refactor
@@ -27,17 +27,15 @@ func Scan(log *zap.Logger, target string, options model.Options, sid string) (mo
 	}
 
 	log.Info("SYSTEM Waiting for analysis")
-	// set up a rate limit
-	rl := newRateLimiter(time.Duration(options.Delay * 1000000))
 
-	policy := StaticAnalysis(target, options, rl)
+	policy := StaticAnalysis(target, options)
 
 	if !isAllowType(policy["Content-Type"]) {
 		log.Error("SYSTEM Not running not allow target policy", zap.String("url", target), zap.String("policy", policy["Content-Type"]))
 		return scanResult, errors.New("not allow policy")
 	}
 
-	params := ParameterAnalysis(log, target, options, rl)
+	params := ParameterAnalysis(log, target, options)
 
 	// XSS Scanning
 	log.Info("SYSTEM  Generate XSS payload and optimization.Optimization..")
@@ -52,7 +50,7 @@ func Scan(log *zap.Logger, target string, options model.Options, sid string) (mo
 
 	log.Info("SYSTEM, Start XSS Scanning.. ", zap.Int("workers count", options.Concurrence), zap.Int("queries count", len(query)))
 
-	wp := NewWorkerPool(10)
+	wp := NewWorkerPool(options.Concurrence)
 	go wp.GenerateFrom(query)
 	go wp.Run(context.Background())
 	for res := range wp.Results() {

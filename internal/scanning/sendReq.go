@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hahwul/dalfox/v2/pkg/verification"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/verification"
 )
 
 // SendReq is sending http request (handled GET/POST)
@@ -59,8 +59,5 @@ func SendReq(req *http.Request, payload string, timeout time.Duration) (string, 
 
 // VerifyReflection is check reflected param for xss and mining
 func VerifyReflection(body, payload string) bool {
-	if strings.Contains(body, payload) {
-		return true
-	}
-	return false
+	return strings.Contains(body, payload)
 }

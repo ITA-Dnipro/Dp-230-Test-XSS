@@ -5,22 +5,19 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/scanning"
 	"go.uber.org/zap"
-
-	"test/internal/model"
-	"test/internal/scanning"
 )
 
 var (
-	url     = flag.String("u", "https://xss-game.appspot.com/level1/frame", "URL")
-	payload = flag.String("p", "./payload.txt", "Use custom payloads list file")
+	url = flag.String("u", "https://xss-game.appspot.com/level1/frame", "URL")
 )
 
 func main() {
 	flag.Parse()
 
 	logger, _ := zap.NewProduction()
-	defer logger.Sync()
 
 	opt := model.Options{
 		// CustomPayloadFile: *payload,
@@ -37,5 +34,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("%+v\n", result)
+	fmt.Printf("%+v\n", len(result.PoCs))
 }
