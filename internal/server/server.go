@@ -4,23 +4,27 @@ import (
 	"context"
 	"log"
 
+	"go.uber.org/zap"
+
+	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/client"
 	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/kafka"
 	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/model"
 	"github.com/ITA-Dnipro/Dp-230-Test-XSS/internal/scanning"
-	"go.uber.org/zap"
 )
 
 type Server struct {
-	logger   *zap.Logger
-	consumer *kafka.Consumer
-	scanner  *scanning.Scanner
+	logger       *zap.Logger
+	consumer     *kafka.Consumer
+	scanner      *scanning.Scanner
+	reportClient *client.ReportClient
 }
 
-func NewServer(logger *zap.Logger, consumer *kafka.Consumer, scanner *scanning.Scanner) *Server {
+func NewServer(logger *zap.Logger, consumer *kafka.Consumer, scanner *scanning.Scanner, reportClient *client.ReportClient) *Server {
 	return &Server{
-		logger:   logger,
-		consumer: consumer,
-		scanner:  scanner,
+		logger:       logger,
+		consumer:     consumer,
+		scanner:      scanner,
+		reportClient: reportClient,
 	}
 }
 
@@ -29,17 +33,18 @@ func (s *Server) Start() {
 	for {
 		message, err := s.consumer.FetchMessage(ctx)
 		if err != nil {
-			log.Printf("Error fetching message: %v\n", err)
+			log.Printf("fetch: %v\n", err)
 		}
-		results := model.Results{ID: message.Value.ID}
+		tr := model.TestResult{Type: "xss"}
 		for _, url := range message.Value.URLs {
 			res, err := s.scanner.Scan(url)
 			if err != nil {
-				log.Printf("Error-based check error:%v\n", err)
+				log.Printf("scan:%v\n", err)
 			}
-			results.Results = append(results.Results, res)
+			tr.Results = append(tr.Results, res)
 		}
-		log.Println(results)
-		// set it to nil for stop processing previous result while no messages from Kafka.
+		if err = s.reportClient.PushResult(ctx, message.Value.ID, tr); err != nil {
+			log.Printf(" error:%v\n", err)
+		}
 	}
 }

@@ -27,7 +27,7 @@ type Result struct {
 	EndTime   time.Time     `json:"end_time"`
 }
 
-type Results struct {
-	ID      string   `json:"id"`
+type TestResult struct {
+	Type    string   `json:"type"`
 	Results []Result `json:"results"`
 }
