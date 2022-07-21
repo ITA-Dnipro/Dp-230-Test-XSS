@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+//protoc --go_out=plugins=grpc:. *.proto
+
+package reportService;
+option go_package = ".;reportService";
+
+message PoC {
+  string Type = 1;
+  string InjectType = 2;
+  string PoCType = 3;
+  string Method = 4;
+  string Data = 5;
+  string Param = 6;
+  string Payload = 7;
+  string Evidence = 8;
+  string SWE = 9;
+  string Severity =10;
+}
+
+message Result {
+  string URL = 1;
+  repeated PoC PoCs = 2;
+  google.protobuf.Timestamp Duration = 3;
+  google.protobuf.Timestamp StartTime = 4;
+  google.protobuf.Timestamp EndTime = 5;
+  string Type = 6;
+}
+
+message TestResult {
+  string Type = 1;
+  repeated Result Results = 2;
+}
+
+message Report {
+  string ID = 1;
+  string URL = 2;
+  string Email = 3;
+  repeated TestResult TestResults = 4;
+  int64 TotalTestCount = 5;
+  int64 FinishTestCount = 6;
+}
+
+message CreateReq {
+  string URL = 1;
+  string Email = 2;
+  int64  TotalTestCount = 3;
+}
+
+message CreateRes {
+  Report Report = 1;
+}
+
+message PushResultReq{
+  string ID = 1;
+  TestResult TestResult = 2;
+}
+
+message PushResultRes {
+  Report Report = 1;
+}
+
+service ReportService {
+  rpc Create(CreateReq) returns (CreateRes) {}
+  rpc PushResult(PushResultReq) returns (PushResultRes) {}
+}
