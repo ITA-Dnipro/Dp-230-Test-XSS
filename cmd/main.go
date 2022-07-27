@@ -22,7 +22,7 @@ func main() {
 	}
 
 	logger, _ := zap.NewProduction()
-	conn, err := grpc.Dial(":9090", grpc.WithInsecure())
+	conn, err := grpc.Dial(cfg.Grpc.Server, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %s", err)
 	}
